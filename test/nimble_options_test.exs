@@ -2104,6 +2104,72 @@ defmodule NimbleOptionsTest do
       end
     end
 
+    # Not sure about implementations for maps
+
+    for type <- [:keyword_list] do
+      @tag skip: false
+      test "keys from function for #{type}" do
+        schema = [
+          producers: [
+            type: unquote(type),
+            keys: fn ->
+              [
+                *: [
+                  type: unquote(type),
+                  keys: [
+                    module: [required: true, type: :atom],
+                    stages: [type: :pos_integer]
+                  ]
+                ]
+              ]
+            end
+          ]
+        ]
+
+        producer1 = opts_to_type(unquote(type), module: MyProducer, stages: :an_atom)
+        producers = opts_to_type(unquote(type), producer1: producer1)
+        opts = [producers: producers]
+
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :stages,
+                    value: :an_atom,
+                    keys_path: [:producers, :producer1],
+                    message:
+                      "invalid value for :stages option: expected positive integer, got: :an_atom"
+                  }}
+      end
+    end
+
+    for type <- [:keyword_list] do
+      test "schemas as values for #{type}" do
+        flunk("this will lead to infinite loop and OOMkill")
+
+        schema = [
+          user_options: [
+            type: :keyword_list,
+            keys: NimbleOptions.options_schema()
+          ]
+        ]
+
+        user_options =
+          opts_to_type(unquote(type), option1: [type: :integer], option2: [type: :bad_type])
+
+        opts = [user_options: user_options]
+
+        assert NimbleOptions.validate(opts, schema) ==
+                 {:error,
+                  %ValidationError{
+                    key: :stages,
+                    value: :an_atom,
+                    keys_path: [:producers, :producer1],
+                    message:
+                      "invalid value for :stages option: expected positive integer, got: :an_atom"
+                  }}
+      end
+    end
+
     test "validate empty keys for :non_empty_keyword_list" do
       schema = [
         producers: [

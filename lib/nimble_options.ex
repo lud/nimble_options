@@ -22,7 +22,7 @@ defmodule NimbleOptions do
           """
         ],
         keys: [
-          type: :keyword_list,
+          type: {:or, [:keyword_list, {:fun, 0}]},
           doc: """
           Available for types `:keyword_list`, `:non_empty_keyword_list`, and `:map`,
           it defines which set of keys are accepted for the option item. The value of the
@@ -494,6 +494,10 @@ defmodule NimbleOptions do
 
   defp validate_options_with_schema(opts, schema) do
     validate_options_with_schema_and_path(opts, schema, _path = [])
+  end
+
+  defp validate_options_with_schema_and_path(opts, schema, path) when is_function(opts, 0) do
+    validate_options_with_schema_and_path(opts.(), schema, path)
   end
 
   defp validate_options_with_schema_and_path(opts, fun, path) when is_function(fun) do
